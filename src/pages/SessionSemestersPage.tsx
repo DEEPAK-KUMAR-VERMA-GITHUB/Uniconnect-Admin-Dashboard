@@ -1,20 +1,20 @@
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { useParams } from "wouter";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowLeft } from "lucide-react";
-import { useLocation } from "wouter";
+import { ArrowLeft, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useLocation, useParams } from "wouter";
 
 // UI Components
+import PaginationControls from "@/components/department/PaginationControls";
+import ChangeSemesterStatusDialog from "@/components/semester/ChangeSemesterStatusDialog";
 import SemesterForm, {
   SemesterFormValues,
   semesterSchema,
 } from "@/components/semester/SemesterForm";
 import SemesterTable from "@/components/semester/SemesterTable";
-import PaginationControls from "@/components/department/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,11 +26,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/context/ToastContext";
-import ChangeSemesterStatusDialog from "@/components/semester/ChangeSemesterStatusDialog";
 
 // Services
-import { Session } from "@/services/sessionService";
-import { useSession } from "@/services/sessionService";
 import {
   Semester,
   useCreateSessionSemester,
@@ -39,6 +36,7 @@ import {
   useUpdateSemester,
   useUpdateSemesterStatus,
 } from "@/services/semesterService";
+import { useSession } from "@/services/sessionService";
 
 const SessionSemestersPage = () => {
   const { sessionId } = useParams();
@@ -311,7 +309,7 @@ const SessionSemestersPage = () => {
     createSessionSemesterMutation.isPending || updateSemesterMutation.isPending;
 
   const handleBackToSessions = () => {
-    navigate("/sessions");
+    navigate(`/course-sessions/${sessionData?.data.course}`);
   };
 
   return (

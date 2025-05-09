@@ -14,7 +14,9 @@ import { UseFormReturn } from "react-hook-form";
 // Define the form schema
 export const semesterSchema = z.object({
   semesterName: z.string().min(1, "Semester name is required"),
-  semesterNumber: z.coerce.number().min(1, "Semester number must be at least 1"),
+  semesterNumber: z.coerce
+    .number()
+    .min(1, "Semester number must be at least 1"),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
 });
@@ -46,7 +48,7 @@ const SemesterForm = ({
             <FormItem>
               <FormLabel>Semester Name</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Semester 1" {...field} />
+                <Input placeholder="e.g. 25BCA1" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -60,12 +62,7 @@ const SemesterForm = ({
             <FormItem>
               <FormLabel>Semester Number</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  placeholder="e.g. 1" 
-                  {...field} 
-                  min={1}
-                />
+                <Input type="number" placeholder="e.g. 1" {...field} min={1} />
               </FormControl>
               <FormMessage />
             </FormItem>
