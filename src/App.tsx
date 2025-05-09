@@ -5,7 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./lib/protectedRoute";
 import { queryClient } from "./lib/queryClient";
 import CourseSessionsPage from "./pages/CourseSessionsPage";
-import CoursesPage from "./pages/CoursesPage";
+import DepartmentCoursesPage from "./pages/DepartmentCoursesPage";
 import DashboardPage from "./pages/DashboardPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import LoginPage from "./pages/LoginPage";
@@ -14,13 +14,17 @@ import SessionsPage from "./pages/SessionsPage";
 import SemestersPage from "./pages/SemestersPage";
 import SessionSemestersPage from "./pages/SessionSemestersPage";
 import SubjectPage from "./pages/SubjectPage";
+import SemesterSubjectsPage from "./pages/SemesterSubjectsPage";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/departments" component={DepartmentsPage} />
-      <ProtectedRoute path="/courses" component={CoursesPage} />
+      <ProtectedRoute
+        path="/department-courses/:departmentId"
+        component={DepartmentCoursesPage}
+      />
       <ProtectedRoute path="/sessions" component={SessionsPage} />
       <ProtectedRoute
         path="/course-sessions/:courseId"
@@ -33,7 +37,7 @@ function Router() {
       />
       <ProtectedRoute
         path="/semester-subjects/:semesterId"
-        component={SubjectPage}
+        component={SemesterSubjectsPage}
       />
 
       <ProtectedRoute path="/subjects" component={SubjectPage} />

@@ -35,11 +35,11 @@ const CourseTable = ({
   onChangeStatus: (course: Course) => void;
 }) => {
   const [, navigate] = useLocation();
-  
+
   const handleViewSessions = (courseId: string) => {
     navigate(`/course-sessions/${courseId}`);
   };
-  
+
   return (
     <Table>
       <TableHeader>
@@ -58,10 +58,11 @@ const CourseTable = ({
           courses.map((course) => (
             <TableRow key={course._id}>
               <TableCell className="font-medium">
-                <Button 
-                  variant="link" 
+                <Button
+                  variant="link"
                   className="p-0 h-auto font-medium text-left"
                   onClick={() => handleViewSessions(course._id)}
+                  disabled={course.status !== "ACTIVE"}
                 >
                   {course.name}
                 </Button>
@@ -104,10 +105,11 @@ const CourseTable = ({
                     size="icon"
                     onClick={() => handleViewSessions(course._id)}
                     title="View Sessions"
+                    disabled={course.status !== "ACTIVE"}
                   >
                     <CalendarDays className="h-4 w-4" />
                   </Button>
-                  
+
                   <Button
                     variant="ghost"
                     size="icon"

@@ -51,6 +51,11 @@ export interface PaginatedResponse {
 }
 
 // API service for departments
+export const fetchDepartment = async (id: string): Promise<Department> => {
+  const response = await apiRequest("GET", `/departments/${id}`);
+  return await response.json();
+};
+
 export const fetchDepartments = async (
   page: number,
   limit: number
@@ -115,6 +120,14 @@ export const updateDepartmentStatus = async (
 };
 
 // Custom hooks for department operations
+export const useDepartment = (id: string) => {
+  return useQuery({
+    queryKey: ["department", id],
+    queryFn: () => fetchDepartment(id),
+    enabled: !!id,
+  });
+};
+
 export const useDepartments = (page: number, limit: number) => {
   return useQuery({
     queryKey: ["departments", page, limit],

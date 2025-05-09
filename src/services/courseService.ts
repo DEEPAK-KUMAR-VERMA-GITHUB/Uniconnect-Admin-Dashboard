@@ -45,13 +45,12 @@ export interface PaginatedResponse {
 }
 
 // API service for courses
-export const fetchCourses = async (
-  page: number,
-  limit: number
-): Promise<PaginatedResponse> => {
+export const fetchCousesByDepartment = async (
+  departmetnId: string
+): Promise<{ data: Course[] }> => {
   const response = await apiRequest(
     "GET",
-    `/courses?page=${page}&limit=${limit}`
+    `/courses/get-courses-by-department/${departmetnId}`
   );
   return await response.json();
 };
@@ -95,15 +94,28 @@ export const updateCourse = async (
   return await response.json();
 };
 
+export const updateCourseStatus = async (
+  id: string,
+  status: string
+): Promise<Course> => {
+  const response = await apiRequest(
+    "PATCH",
+    `/courses/update-course-status/${id}`,
+    { status }
+  );
+  return await response.json();
+};
+
 export const deleteCourse = async (id: string): Promise<void> => {
   await apiRequest("DELETE", `/courses/delete-course/${id}`);
 };
 
 // Custom hooks for course operations
-export const useCourses = (page: number, limit: number) => {
+export const useCoursesByDepartment = (departmentId: string) => {
   return useQuery({
-    queryKey: ["courses", page, limit],
-    queryFn: () => fetchCourses(page, limit),
+    queryKey: ["department-courses", departmentId],
+    queryFn: () => fetchCousesByDepartment(departmentId),
+    enabled: !!departmentId,
   });
 };
 
@@ -125,6 +137,13 @@ export const useUpdateCourse = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       updateCourse(id, data),
+  });
+};
+
+export const useUpdateCourseStatus = () => {
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateCourseStatus(id, status),
   });
 };
 

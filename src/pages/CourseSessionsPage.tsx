@@ -321,7 +321,7 @@ const CourseSessionsPage = () => {
     createSessionMutation.isPending || updateSessionMutation.isPending;
 
   const handleBackToCourses = () => {
-    navigate("/courses");
+    navigate(`/department-courses/${courseData?.data.department}`);
   };
 
   return (

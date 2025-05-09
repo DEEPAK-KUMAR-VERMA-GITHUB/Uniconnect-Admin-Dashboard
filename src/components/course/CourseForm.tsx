@@ -1,3 +1,4 @@
+// src/components/course/CourseForm.tsx
 import { z } from "zod";
 import { Button } from "../ui/button";
 import { DialogFooter } from "../ui/dialog";
@@ -46,11 +47,15 @@ const CourseForm = ({
   form,
   isSubmitting,
   isEditing,
+  departmentId,
+  hideDeparmtentField = false,
 }: {
   onSubmit: (data: CourseFormValues) => void;
   form: ReturnType<typeof useForm<CourseFormValues>>;
   isSubmitting: boolean;
   isEditing: boolean;
+  departmentId?: string;
+  hideDeparmtentField?: boolean;
 }) => {
   // Fetch departments for dropdown
   const { data: departmentsData } = useDepartments(1, 100);
@@ -87,34 +92,36 @@ const CourseForm = ({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="department"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Department</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a department" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={department._id} value={department._id}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!hideDeparmtentField && (
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a department" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {departments.map((department) => (
+                      <SelectItem key={department._id} value={department._id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

@@ -4,12 +4,13 @@ import {
   Course,
   useCreateCourse,
   useDeleteCourse,
-  useCourses,
+  useCoursesByDepartment,
   useUpdateCourse,
+  useUpdateCourseStatus,
 } from "@/services/courseService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -32,8 +33,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/context/ToastContext";
 import ChangeCourseStatusDialog from "@/components/course/ChangeCourseStatusDialog";
+import { useLocation, useParams } from "wouter";
+import { useDepartment } from "@/services/departmentService";
 
-const CoursesPage = () => {
+const DepartmentCoursesPage = () => {
+  const { departmentId } = useParams();
   const { toast } = useToast();
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,25 +51,31 @@ const CoursesPage = () => {
   const [courseForStatusChange, setCourseForStatusChange] =
     useState<Course | null>(null);
 
-  // Form setup
+  const [, navigate] = useLocation();
+
+  // Get department details
+  const { data: departmentData, isLoading: isLoadingDepartment } =
+    useDepartment(departmentId || "");
+
+  // Form setup with department pre-selected
   const courseForm = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
       name: "",
       code: "",
-      department: "",
+      department: departmentId || "",
       duration: 4,
       type: "",
     },
   });
 
-  // Reset form when selected course changes
+  // Reset form when selected course changes or department changes
   useEffect(() => {
     if (selectedCourse) {
       courseForm.reset({
         name: selectedCourse.name,
         code: selectedCourse.code,
-        department: selectedCourse.department._id,
+        department: departmentId || "",
         duration: selectedCourse.duration,
         type: selectedCourse.type,
       });
@@ -73,23 +83,25 @@ const CoursesPage = () => {
       courseForm.reset({
         name: "",
         code: "",
-        department: "",
+        department: departmentId || "",
         duration: 4,
         type: "",
       });
     }
-  }, [selectedCourse, courseForm]);
+  }, [selectedCourse, courseForm, departmentId]);
 
-  // API hooks
+  // API hooks - using department-specific courses endpoint
   const {
     data: res,
     isLoading,
     isError,
     error,
-  } = useCourses(currentPage, coursesPerPage);
+  } = useCoursesByDepartment(departmentId || "");
+
   const createCourseMutation = useCreateCourse();
   const updateCourseMutation = useUpdateCourse();
   const deleteCourseMutation = useDeleteCourse();
+  const updateCourseStatusMutation = useUpdateCourseStatus();
 
   // Extract data with safe fallbacks
   const { courses, pagination } = useMemo(
@@ -138,7 +150,9 @@ const CoursesPage = () => {
     (id: string) => {
       deleteCourseMutation.mutate(id, {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["courses"] });
+          queryClient.invalidateQueries({
+            queryKey: ["department-courses", departmentId],
+          });
           toast({
             title: "Success",
             description: "Course deleted successfully",
@@ -163,21 +177,24 @@ const CoursesPage = () => {
         },
       });
     },
-    [deleteCourseMutation, queryClient, toast]
+    [deleteCourseMutation, queryClient, toast, departmentId]
   );
 
   // Handle status change
   const handleStatusChange = useCallback(
     (courseId: string, status: string) => {
-      updateCourseMutation.mutate(
+      updateCourseStatusMutation.mutate(
         {
           id: courseId,
-          data: { status },
+          status,
         },
         {
           onSuccess: () => {
             setIsStatusDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["courses"] });
+            // Invalidate and refetch queries
+            queryClient.invalidateQueries({
+              queryKey: ["department-courses", departmentId],
+            });
             toast({
               title: "Success",
               description: "Course status updated successfully",
@@ -203,30 +220,32 @@ const CoursesPage = () => {
         }
       );
     },
-    [updateCourseMutation, queryClient, toast]
+    [updateCourseStatusMutation, queryClient, toast, departmentId]
   );
 
   // Form submission
   const onSubmit = useCallback(
     (data: CourseFormValues) => {
+      // Always use the department ID from the URL
+      const courseData = {
+        ...data,
+        department: departmentId || "",
+      };
+
       if (selectedCourse) {
         // Update existing course
         updateCourseMutation.mutate(
           {
             id: selectedCourse._id,
-            data: {
-              name: data.name,
-              code: data.code,
-              department: data.department,
-              duration: data.duration,
-              type: data.type,
-            },
+            data: courseData,
           },
           {
             onSuccess: () => {
               setIsDialogOpen(false);
               setSelectedCourse(null);
-              queryClient.invalidateQueries({ queryKey: ["courses"] });
+              queryClient.invalidateQueries({
+                queryKey: ["department-courses", departmentId],
+              });
               toast({
                 title: "Success",
                 description: "Course updated successfully",
@@ -253,10 +272,12 @@ const CoursesPage = () => {
         );
       } else {
         // Create new course
-        createCourseMutation.mutate(data, {
+        createCourseMutation.mutate(courseData, {
           onSuccess: () => {
             setIsDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["courses"] });
+            queryClient.invalidateQueries({
+              queryKey: ["department-courses", departmentId],
+            });
             toast({
               title: "Success",
               description: "Course created successfully",
@@ -288,11 +309,21 @@ const CoursesPage = () => {
       updateCourseMutation,
       queryClient,
       toast,
+      departmentId,
     ]
   );
 
   const isSubmitting =
     createCourseMutation.isPending || updateCourseMutation.isPending;
+
+  const handleBackToDepartment = () => {
+    navigate("/departments");
+  };
+
+  // Navigate to course sessions
+  const handleViewSessions = (courseId: string) => {
+    navigate(`/department/${departmentId}/course/${courseId}/sessions`);
+  };
 
   return (
     <div className="flex min-h-screen bg-background overflow-hidden">
@@ -302,14 +333,29 @@ const CoursesPage = () => {
         <Header notifications={[]} />
 
         <main className="flex-1 p-6 overflow-auto">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center mb-6">
+            <Button
+              variant="ghost"
+              onClick={handleBackToDepartment}
+              className="mr-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Departments
+            </Button>
+
             <div>
-              <h1 className="text-2xl font-bold">Course Management</h1>
+              <h1 className="text-2xl font-bold">
+                {isLoadingDepartment
+                  ? "Loading..."
+                  : `${departmentData?.data.code} Courses`}
+              </h1>
               <p className="text-muted-foreground">
-                Manage university courses and their details
+                Manage courses for this department
               </p>
             </div>
+          </div>
 
+          <div className="flex items-center justify-between mb-6">
             <ChangeCourseStatusDialog
               course={courseForStatusChange}
               isOpen={isStatusDialogOpen}
@@ -340,6 +386,8 @@ const CoursesPage = () => {
                   onSubmit={onSubmit}
                   isSubmitting={isSubmitting}
                   isEditing={!!selectedCourse}
+                  departmentId={departmentId || ""}
+                  hideDeparmtentField={true}
                 />
               </DialogContent>
             </Dialog>
@@ -365,6 +413,7 @@ const CoursesPage = () => {
                       setCourseForStatusChange(course);
                       setIsStatusDialogOpen(true);
                     }}
+                    onViewSessions={handleViewSessions}
                   />
 
                   {/* Pagination */}
@@ -390,4 +439,4 @@ const CoursesPage = () => {
   );
 };
 
-export default CoursesPage;
+export default DepartmentCoursesPage;

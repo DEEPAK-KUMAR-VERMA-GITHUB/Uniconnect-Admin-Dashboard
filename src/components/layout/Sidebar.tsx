@@ -39,7 +39,7 @@ const Sidebar = () => {
   const links: SidebarLink[] = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/departments", label: "Departments", icon: Building },
-    { href: "/courses", label: "Courses", icon: BookOpen },
+    // { href: "/courses", label: "Courses", icon: BookOpen },
     // { href: "/sessions", label: "Sessions", icon: Calendar },
     // { href: "/semesters", label: "Semesters", icon: CalendarDays },
     { href: "/subjects", label: "Subjects", icon: FileText },
