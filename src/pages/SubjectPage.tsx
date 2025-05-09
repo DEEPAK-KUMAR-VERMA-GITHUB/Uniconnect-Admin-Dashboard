@@ -1,11 +1,10 @@
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { useParams } from "wouter";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { set, useForm } from "react-hook-form";
 import { useLocation } from "wouter";
 
 // UI Components
@@ -22,25 +21,23 @@ import {
 import { useToast } from "@/context/ToastContext";
 
 // Services
-import { useSemester } from "@/services/semesterService";
-import {
-  Subject,
-  useCreateSubject,
-  useDeleteSubject,
-  useSubjectsBySemester,
-  useUpdateSubject,
-  useUpdateSubjectStatus,
-} from "@/services/subjectService";
-import SubjectTable from "@/components/subject/SubjectTable";
+import PaginationControls from "@/components/department/PaginationControls";
+import ChangeSubjectStatusDialog from "@/components/subject/ChangeSubjectStatusDialog";
 import SubjectForm, {
   SubjectFormValues,
   subjectSchema,
 } from "@/components/subject/SubjectForm";
-import PaginationControls from "@/components/department/PaginationControls";
-import ChangeSubjectStatusDialog from "@/components/subject/ChangeSubjectStatusDialog";
+import SubjectTable from "@/components/subject/SubjectTable";
+import {
+  Subject,
+  useCreateSubject,
+  useDeleteSubject,
+  useSubjects,
+  useUpdateSubject,
+  useUpdateSubjectStatus,
+} from "@/services/subjectService";
 
 const SubjectPage = () => {
-  const { semesterId } = useParams();
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -54,11 +51,6 @@ const SubjectPage = () => {
 
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [subjectForStatusChange, setSubjectForStatusChange] = useState(null);
-
-  // Get semester details
-  const { data: semesterData, isLoading: isLoadingSemester } = useSemester(
-    semesterId || ""
-  );
 
   // Form setup
   const subjectForm = useForm<SubjectFormValues>({
@@ -97,12 +89,7 @@ const SubjectPage = () => {
   }, [selectedSubject, subjectForm]);
 
   // API hooks
-  const {
-    data: res,
-    isLoading,
-    isError,
-    error,
-  } = useSubjectsBySemester(semesterId || "");
+  const { data: res, isLoading, isError, error } = useSubjects();
 
   const createSubjectMutation = useCreateSubject();
   const updateSubjectMutation = useUpdateSubject();
@@ -157,7 +144,7 @@ const SubjectPage = () => {
       deleteSubjectMutation.mutate(id, {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ["semester-subjects", semesterId],
+            queryKey: ["subjects"],
           });
           toast({
             title: "Success",
@@ -183,7 +170,7 @@ const SubjectPage = () => {
         },
       });
     },
-    [deleteSubjectMutation, queryClient, toast, semesterId]
+    [deleteSubjectMutation, queryClient, toast]
   );
 
   // Handle status change
@@ -198,7 +185,7 @@ const SubjectPage = () => {
           onSuccess: () => {
             setIsStatusDialogOpen(false);
             queryClient.invalidateQueries({
-              queryKey: ["semester-subjects", semesterId],
+              queryKey: ["subjects"],
             });
             toast({
               title: "Success",
@@ -225,7 +212,7 @@ const SubjectPage = () => {
         }
       );
     },
-    [updateSubjectStatusMutation, queryClient, toast, semesterId]
+    [updateSubjectStatusMutation, queryClient, toast]
   );
 
   // Form submission
@@ -252,7 +239,7 @@ const SubjectPage = () => {
               setIsDialogOpen(false);
               setSelectedSubject(null);
               queryClient.invalidateQueries({
-                queryKey: ["semester-subjects", semesterId],
+                queryKey: ["subjects"],
               });
               toast({
                 title: "Success",
@@ -282,7 +269,6 @@ const SubjectPage = () => {
         // Create new subject for this semester
         createSubjectMutation.mutate(
           {
-            semesterId: semesterId || "",
             data: {
               name: data.name,
               code: data.code,
@@ -298,7 +284,7 @@ const SubjectPage = () => {
             onSuccess: () => {
               setIsDialogOpen(false);
               queryClient.invalidateQueries({
-                queryKey: ["semester-subjects", semesterId],
+                queryKey: ["subjects"],
               });
               toast({
                 title: "Success",
@@ -333,7 +319,6 @@ const SubjectPage = () => {
       createSubjectMutation,
       queryClient,
       toast,
-      semesterId,
       subjectForm,
     ]
   );
@@ -344,20 +329,28 @@ const SubjectPage = () => {
     setIsStatusDialogOpen(true);
   }, []);
 
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    // Allow some time for animation to complete before resetting selected subject
+    setTimeout(() => {
+      setSelectedSubject(null);
+    }, 300);
+  };
+
+  const handleCloseStatusDialog = () => {
+    setIsStatusDialogOpen(false);
+    // Allow some time for animation to complete before resetting subject for status change
+    setTimeout(() => {
+      setSubjectForStatusChange(null);
+    }, 300);
+  };
+
   const handleBackToSemesters = () => {
-    navigate("/semesters");
+    navigate("/");
   };
 
   const isSubmitting =
     createSubjectMutation.isPending || updateSubjectMutation.isPending;
-
-  if (isLoadingSemester) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Loading semester details...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen bg-background overflow-hidden">
@@ -374,13 +367,11 @@ const SubjectPage = () => {
               className="mr-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Semesters
+              Back to Dashboard
             </Button>
 
             <div>
-              <h1 className="text-2xl font-bold">
-                {semesterData?.data?.semesterName || "Subjects"}
-              </h1>
+              <h1 className="text-2xl font-bold">{"Subjects"}</h1>
               <p className="text-muted-foreground">
                 Manage subjects for this semester
               </p>
@@ -390,12 +381,25 @@ const SubjectPage = () => {
           <div className="flex justify-end mb-6">
             <ChangeSubjectStatusDialog
               isOpen={isStatusDialogOpen}
-              onClose={() => setIsStatusDialogOpen(false)}
+              onOpenChange={(open) => {
+                setIsStatusDialogOpen(open);
+                if (!open) {
+                  handleCloseStatusDialog;
+                }
+              }}
               subject={subjectForStatusChange}
               onStatusChange={handleStatusChange}
             />
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) {
+                  handleCloseDialog();
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedSubject(null)}>
                   <Plus className="mr-2 h-4 w-4" /> Add Subject

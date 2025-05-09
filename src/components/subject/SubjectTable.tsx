@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,14 +14,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { MoreHorizontal, Pencil, ToggleLeft, Trash2 } from "lucide-react";
 import {
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  ToggleLeft,
-  BookOpen,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
+import { useState } from "react";
 
 interface SubjectTableProps {
   subjects: any[];
@@ -35,6 +41,9 @@ const SubjectTable = ({
   onDelete,
   onChangeStatus,
 }: SubjectTableProps) => {
+  // Track which alert dialog is open
+  const [openAlertId, setOpenAlertId] = useState<string | null>(null);
+
   const getStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
       case "active":
@@ -48,6 +57,12 @@ const SubjectTable = ({
       default:
         return <Badge>{status}</Badge>;
     }
+  };
+
+  // Handle delete with confirmation
+  const handleDelete = (id: string) => {
+    onDelete(id);
+    setOpenAlertId(null); // Close the dialog after deletion
   };
 
   return (
@@ -72,7 +87,9 @@ const SubjectTable = ({
             </TableRow>
           ) : (
             subjects.map((subject) => (
-              <TableRow key={subject._id}>
+              <TableRow
+                key={`${subject._id}-${subject.updatedAt || Date.now()}`}
+              >
                 <TableCell className="font-medium">{subject.name}</TableCell>
                 <TableCell>{subject.code}</TableCell>
                 <TableCell className="text-center">{subject.credits}</TableCell>
@@ -93,23 +110,57 @@ const SubjectTable = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(subject)}>
+                      <DropdownMenuItem
+                        onClick={() => onEdit(subject)}
+                        className="cursor-pointer"
+                      >
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeStatus(subject)}>
+                      <DropdownMenuItem
+                        onClick={() => onChangeStatus(subject)}
+                        className="cursor-pointer"
+                      >
                         <ToggleLeft className="mr-2 h-4 w-4" />
                         Change Status
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => onDelete(subject._id)}
+                        className="text-destructive focus:text-destructive cursor-pointer"
+                        onClick={() => setOpenAlertId(subject._id)}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+
+                  <AlertDialog
+                    open={openAlertId === subject._id}
+                    onOpenChange={(open) => {
+                      if (!open) setOpenAlertId(null);
+                    }}
+                  >
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Subject</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{subject.name}"? This
+                          action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setOpenAlertId(null)}>
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(subject._id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </TableCell>
               </TableRow>
             ))

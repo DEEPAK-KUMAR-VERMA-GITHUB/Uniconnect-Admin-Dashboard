@@ -36,6 +36,8 @@ function Router() {
         component={SubjectPage}
       />
 
+      <ProtectedRoute path="/subjects" component={SubjectPage} />
+
       {/* <ProtectedRoute path="/users" component={UsersPage} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/reports" component={ReportsPage} /> */}

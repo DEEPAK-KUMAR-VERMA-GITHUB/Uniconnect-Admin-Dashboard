@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ChangeSubjectStatusDialogProps {
   subject: any | null;
@@ -32,9 +32,13 @@ const ChangeSubjectStatusDialog = ({
   const [selectedStatus, setSelectedStatus] = useState<string>("");
 
   // Reset selected status when dialog opens with a new subject
-  if (subject && isOpen && selectedStatus === "") {
-    setSelectedStatus(subject.status);
-  }
+  useEffect(() => {
+    if (subject && isOpen) {
+      setSelectedStatus(subject.status);
+    } else if (!isOpen) {
+      setSelectedStatus("");
+    }
+  }, [subject, isOpen]);
 
   // Reset selected status when dialog closes
   if (!isOpen && selectedStatus !== "") {

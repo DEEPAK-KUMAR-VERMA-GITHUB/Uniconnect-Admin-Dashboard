@@ -58,7 +58,6 @@ export const fetchSubject = async (id: string): Promise<{ data: Subject }> => {
 };
 
 export const createSubject = async (subjectData: {
-  semesterId: string;
   data: {
     name: string;
     code: string;
@@ -72,7 +71,7 @@ export const createSubject = async (subjectData: {
 }): Promise<Subject> => {
   const response = await apiRequest(
     "POST",
-    `/subjects/semester/${subjectData.semesterId}/create-subject`,
+    `/subjects/create`,
     subjectData.data
   );
   return await response.json();
@@ -91,16 +90,12 @@ export const updateSubject = async (
     };
   }
 ): Promise<Subject> => {
-  const response = await apiRequest(
-    "PUT",
-    `/subjects/update/${id}`,
-    subjectData
-  );
+  const response = await apiRequest("PUT", `/subjects/${id}`, subjectData);
   return await response.json();
 };
 
 export const deleteSubject = async (id: string): Promise<void> => {
-  await apiRequest("DELETE", `/subjects/delete/${id}`);
+  await apiRequest("DELETE", `/subjects/${id}`);
 };
 
 export const updateSubjectStatus = async (
@@ -113,7 +108,19 @@ export const updateSubjectStatus = async (
   return await response.json();
 };
 
+export const fetchSubjects = async (): Promise<PaginatedResponse> => {
+  const response = await apiRequest("GET", `/subjects`);
+  return await response.json();
+};
+
 // Custom hooks for subject operations
+export const useSubjects = () => {
+  return useQuery({
+    queryKey: ["subjects"],
+    queryFn: () => fetchSubjects(),
+  });
+};
+
 export const useSubjectsBySemester = (semesterId: string) => {
   return useQuery({
     queryKey: ["semester-subjects", semesterId],
