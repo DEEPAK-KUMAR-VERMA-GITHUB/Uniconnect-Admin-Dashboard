@@ -10,8 +10,6 @@ import DashboardPage from "./pages/DashboardPage";
 import DepartmentsPage from "./pages/DepartmentsPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
-import SessionsPage from "./pages/SessionsPage";
-import SemestersPage from "./pages/SemestersPage";
 import SessionSemestersPage from "./pages/SessionSemestersPage";
 import SubjectPage from "./pages/SubjectPage";
 import SemesterSubjectsPage from "./pages/SemesterSubjectsPage";
@@ -25,12 +23,10 @@ function Router() {
         path="/department-courses/:departmentId"
         component={DepartmentCoursesPage}
       />
-      <ProtectedRoute path="/sessions" component={SessionsPage} />
       <ProtectedRoute
         path="/course-sessions/:courseId"
         component={CourseSessionsPage}
       />
-      <ProtectedRoute path="/semesters" component={SemestersPage} />
       <ProtectedRoute
         path="/session-semesters/:sessionId"
         component={SessionSemestersPage}

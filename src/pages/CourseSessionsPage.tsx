@@ -1,20 +1,20 @@
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
-import { useParams } from "wouter";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowLeft } from "lucide-react";
-import { useLocation } from "wouter";
+import { ArrowLeft, Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useLocation, useParams } from "wouter";
 
 // UI Components
+import PaginationControls from "@/components/department/PaginationControls";
+import ChangeSessionStatusDialog from "@/components/session/ChangeSessionStatusDialog";
 import SessionForm, {
   SessionFormValues,
   sessionSchema,
 } from "@/components/session/SessionForm";
 import SessionTable from "@/components/session/SessionTable";
-import PaginationControls from "@/components/department/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,15 +26,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/context/ToastContext";
-import ChangeSessionStatusDialog from "@/components/session/ChangeSessionStatusDialog";
 
 // Services
 import { useCourse } from "@/services/courseService";
 import {
   Session,
+  useCourseSessionsById,
   useCreateCourseSession,
   useDeleteCourseSession,
-  useCourseSessionsById,
   useUpdateCourseSession,
   useUpdateCourseSessionStatus,
 } from "@/services/sessionService";
@@ -70,18 +69,17 @@ const CourseSessionsPage = () => {
     },
   });
 
+  // Format dates to YYYY-MM-DD for input[type="date"]
+  // const formatDateForInput = (dateString: string) => {
+  //   const date = new Date(dateString);
+  //   return date.toISOString().split("T")[0];
+  // };
   // Reset form when selected session changes
   useEffect(() => {
     if (selectedSession) {
-      // Format dates to YYYY-MM-DD for input[type="date"]
-      const formatDateForInput = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toISOString().split("T")[0];
-      };
-
       sessionForm.reset({
         name: selectedSession.name,
-        startYear: formatDateForInput(selectedSession.startYear),
+        startYear: selectedSession.startYear,
       });
     } else {
       sessionForm.reset({
@@ -346,7 +344,7 @@ const CourseSessionsPage = () => {
               <h1 className="text-2xl font-bold">
                 {isLoadingCourse
                   ? "Loading..."
-                  : `Sessions for ${courseData?.data?.name || "Course"}`}
+                  : `Sessions for ${courseData?.data.code || "Course"}`}
               </h1>
               <p className="text-muted-foreground">
                 Manage academic sessions for this course

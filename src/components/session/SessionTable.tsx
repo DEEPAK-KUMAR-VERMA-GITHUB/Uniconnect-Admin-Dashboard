@@ -95,6 +95,7 @@ const SessionTable = ({
                     variant="link"
                     className="p-0 h-auto font-medium text-left"
                     onClick={() => handleViewSemesters(session._id)}
+                    disabled={session.status !== "ACTIVE"}
                   >
                     {`${session.startYear} - ${session.endYear}`}
                   </Button>
@@ -115,6 +116,7 @@ const SessionTable = ({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => handleViewSemesters(session._id)}
+                        disabled={session.status !== "ACTIVE"}
                       >
                         <BookOpen className="mr-2 h-4 w-4" />
                         View Semesters

@@ -46,18 +46,6 @@ export interface PaginatedResponse {
   timestamp: string;
 }
 
-// API service for sessions
-export const fetchSessions = async (
-  page: number,
-  limit: number
-): Promise<PaginatedResponse> => {
-  const response = await apiRequest(
-    "GET",
-    `/sessions?page=${page}&limit=${limit}`
-  );
-  return await response.json();
-};
-
 export const fetchSession = async (id: string): Promise<{ data: Session }> => {
   const response = await apiRequest("GET", `/sessions/get-session/${id}`);
   return await response.json();
@@ -73,43 +61,12 @@ export const fetchCourseSessionsById = async (
   return await response.json();
 };
 
-export const createSession = async (sessionData: {
-  name: string;
-  startYear: string;
-  endDate: string;
-}): Promise<Session> => {
-  const response = await apiRequest(
-    "POST",
-    "/sessions/create-session",
-    sessionData
-  );
-  return await response.json();
-};
-
 export const createCourseSession = async (sessionData: {
   name: string;
   startYear: string;
-  endYear: string;
   course: string;
 }): Promise<Session> => {
   const response = await apiRequest("POST", "/sessions/create", sessionData);
-  return await response.json();
-};
-
-export const updateSession = async (
-  id: string,
-  sessionData: {
-    name?: string;
-    startYear?: string;
-    endYear?: string;
-    status?: string;
-  }
-): Promise<Session> => {
-  const response = await apiRequest(
-    "PUT",
-    `/sessions/update-session/${id}`,
-    sessionData
-  );
   return await response.json();
 };
 
@@ -130,22 +87,8 @@ export const updateCourseSession = async (
   return await response.json();
 };
 
-export const deleteSession = async (id: string): Promise<void> => {
-  await apiRequest("DELETE", `/sessions/delete-session/${id}`);
-};
-
 export const deleteCourseSession = async (id: string): Promise<void> => {
   await apiRequest("DELETE", `/sessions/delete/${id}`);
-};
-
-export const updateSessionStatus = async (
-  id: string,
-  status: string
-): Promise<Session> => {
-  const response = await apiRequest("PUT", `/sessions/update-session/${id}`, {
-    status,
-  });
-  return await response.json();
 };
 
 export const updateCourseSessionStatus = async (
@@ -153,19 +96,11 @@ export const updateCourseSessionStatus = async (
   status: string
 ): Promise<Session> => {
   const response = await apiRequest(
-    "PUT",
+    "PATCH",
     `/sessions/toggle-session-status/${id}`,
     { status }
   );
   return await response.json();
-};
-
-// Custom hooks for session operations
-export const useSessions = (page: number, limit: number) => {
-  return useQuery({
-    queryKey: ["sessions", page, limit],
-    queryFn: () => fetchSessions(page, limit),
-  });
 };
 
 export const useSession = (id: string) => {
@@ -184,22 +119,9 @@ export const useCourseSessionsById = (courseId: string) => {
   });
 };
 
-export const useCreateSession = () => {
-  return useMutation({
-    mutationFn: createSession,
-  });
-};
-
 export const useCreateCourseSession = () => {
   return useMutation({
     mutationFn: createCourseSession,
-  });
-};
-
-export const useUpdateSession = () => {
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      updateSession(id, data),
   });
 };
 
@@ -210,27 +132,9 @@ export const useUpdateCourseSession = () => {
   });
 };
 
-export const useDeleteSession = () => {
-  return useMutation({
-    mutationFn: deleteSession,
-  });
-};
-
 export const useDeleteCourseSession = () => {
   return useMutation({
     mutationFn: deleteCourseSession,
-  });
-};
-
-export const useUpdateSessionStatus = () => {
-  return useMutation({
-    mutationFn: ({
-      sessionId,
-      status,
-    }: {
-      sessionId: string;
-      status: string;
-    }) => updateSessionStatus(sessionId, status),
   });
 };
 
