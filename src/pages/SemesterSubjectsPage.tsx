@@ -19,11 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/hooks/context/ToastContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Services
-import { useSemester } from "@/services/semesterService";
+import {
+  useDeleteSemesterSubject,
+  useSemester,
+} from "@/services/semesterService";
 import {
   useCreateSubject,
   useDeleteSubject,
@@ -34,6 +37,7 @@ import {
   Subject,
 } from "@/services/subjectService";
 import { useFacultyByDepartment } from "@/services/facultyService";
+import { useAddSubjectsToSemester } from "@/services/subjectService";
 
 // Components
 import SubjectTable from "@/components/subject/SubjectTable";
@@ -44,6 +48,8 @@ import SubjectForm, {
 import PaginationControls from "@/components/department/PaginationControls";
 import ChangeSubjectStatusDialog from "@/components/subject/ChangeSubjectStatusDialog";
 import AssignFacultyDialog from "@/components/semester/AssignFacultyDialog";
+import AddSemesterSubjectsDialog from "@/components/semester/AddSemesterSubjectsDialog";
+import SemesterSubjectTable from "@/components/semester/SemesterSubjectTable";
 
 const SemesterSubjectsPage = () => {
   const { semesterId } = useParams();
@@ -59,6 +65,7 @@ const SemesterSubjectsPage = () => {
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isAssignFacultyDialogOpen, setIsAssignFacultyDialogOpen] =
     useState(false);
+  const [isAddSubjectsDialogOpen, setIsAddSubjectsDialogOpen] = useState(false);
 
   // Selected items
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -96,6 +103,9 @@ const SemesterSubjectsPage = () => {
         name: selectedSubject.name,
         code: selectedSubject.code,
         credits: selectedSubject.credits,
+        department: selectedSubject.department._id,
+        course: selectedSubject.course._id,
+        status: selectedSubject.status,
         isElective: selectedSubject.metadata?.isElective || false,
         hasLab: selectedSubject.metadata?.hasLab || false,
         isOnline: selectedSubject.metadata?.isOnline || false,
@@ -104,6 +114,9 @@ const SemesterSubjectsPage = () => {
       subjectForm.reset({
         name: "",
         code: "",
+        status: "active",
+        department: semesterData?.data?.session?.course?.department || "",
+        course: semesterData?.data?.session?.course?._id || "",
         credits: 3,
         isElective: false,
         hasLab: false,
@@ -122,9 +135,10 @@ const SemesterSubjectsPage = () => {
 
   const createSubjectMutation = useCreateSubject();
   const updateSubjectMutation = useUpdateSubject();
-  const deleteSubjectMutation = useDeleteSubject();
+  const deleteSubjectMutation = useDeleteSemesterSubject();
   const updateSubjectStatusMutation = useUpdateSubjectStatus();
   const assignFacultyMutation = useAssignFaculty();
+  const addSubjectsToSemesterMutation = useAddSubjectsToSemester();
 
   // Extract data with safe fallbacks
   const { subjects, pagination } = useMemo(
@@ -184,34 +198,40 @@ const SemesterSubjectsPage = () => {
 
   const handleDelete = useCallback(
     (id: string) => {
-      deleteSubjectMutation.mutate(id, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ["semester-subjects", semesterId],
-          });
-          toast({
-            title: "Success",
-            description: "Subject deleted successfully",
-            variant: "default",
-          });
+      deleteSubjectMutation.mutate(
+        {
+          semesterId: semesterData?.data._id || "",
+          subjectId: id,
         },
-        onError: (error: Error) => {
-          try {
-            const err = JSON.parse(error.message);
-            toast({
-              title: err.error || "Error",
-              description: err.message || "Failed to delete subject",
-              variant: "destructive",
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: ["semester-subjects", semesterId],
             });
-          } catch {
             toast({
-              title: "Error",
-              description: error.message || "Failed to delete subject",
-              variant: "destructive",
+              title: "Success",
+              description: "Subject deleted successfully",
+              variant: "default",
             });
-          }
-        },
-      });
+          },
+          onError: (error: Error) => {
+            try {
+              const err = JSON.parse(error.message);
+              toast({
+                title: err.error || "Error",
+                description: err.message || "Failed to delete subject",
+                variant: "destructive",
+              });
+            } catch {
+              toast({
+                title: "Error",
+                description: error.message || "Failed to delete subject",
+                variant: "destructive",
+              });
+            }
+          },
+        }
+      );
     },
     [deleteSubjectMutation, queryClient, toast, semesterId]
   );
@@ -302,6 +322,51 @@ const SemesterSubjectsPage = () => {
     [assignFacultyMutation, queryClient, toast, semesterId]
   );
 
+  const handleAddSubjects = useCallback(
+    (subjectIds: string[]) => {
+      addSubjectsToSemesterMutation.mutate(
+        {
+          semesterId: semesterId || "",
+          subjectIds,
+        },
+        {
+          onSuccess: () => {
+            setIsAddSubjectsDialogOpen(false);
+            queryClient.invalidateQueries({
+              queryKey: ["semester-subjects", semesterId],
+            });
+            toast({
+              title: "Success",
+              description: `${subjectIds.length} subject${
+                subjectIds.length !== 1 ? "s" : ""
+              } added to semester successfully`,
+              variant: "default",
+            });
+          },
+          onError: (error: Error) => {
+            try {
+              const err = JSON.parse(error.message);
+              toast({
+                title: err.error || "Error",
+                description:
+                  err.message || "Failed to add subjects to semester",
+                variant: "destructive",
+              });
+            } catch {
+              toast({
+                title: "Error",
+                description:
+                  error.message || "Failed to add subjects to semester",
+                variant: "destructive",
+              });
+            }
+          },
+        }
+      );
+    },
+    [addSubjectsToSemesterMutation, queryClient, toast, semesterId]
+  );
+
   // Form submission
   const onSubmit = useCallback(
     (data: SubjectFormValues) => {
@@ -314,6 +379,9 @@ const SemesterSubjectsPage = () => {
               name: data.name,
               code: data.code,
               credits: data.credits,
+              department: data.department,
+              course: data.course,
+              status: selectedSubject.status,
               metadata: {
                 isElective: data.isElective,
                 hasLab: data.hasLab,
@@ -356,11 +424,13 @@ const SemesterSubjectsPage = () => {
         // Create new subject for this semester
         createSubjectMutation.mutate(
           {
-            semesterId: semesterId || "",
             data: {
               name: data.name,
               code: data.code,
               credits: data.credits,
+              department: data.department,
+              course: data.course,
+              status: "ACTIVE",
               metadata: {
                 isElective: data.isElective,
                 hasLab: data.hasLab,
@@ -413,7 +483,7 @@ const SemesterSubjectsPage = () => {
   );
 
   const handleBackToSemesters = () => {
-    navigate("/semesters");
+    navigate(`/session-semesters/${semesterData?.data.session._id}`);
   };
 
   const isSubmitting =
@@ -525,15 +595,19 @@ const SemesterSubjectsPage = () => {
               </TabsList>
             </Tabs>
 
-            <Button
-              onClick={() => {
-                setSelectedSubject(null);
-                setIsSubjectDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add Subject
+            <Button onClick={() => setIsAddSubjectsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Subjects
             </Button>
           </div>
+
+          <AddSemesterSubjectsDialog
+            isOpen={isAddSubjectsDialogOpen}
+            onOpenChange={setIsAddSubjectsDialogOpen}
+            onAddSubjects={handleAddSubjects}
+            departmentId={semesterData?.data?.session?.course?.department || ""}
+            courseId={semesterData?.data?.session?.course?.id || ""}
+            semesterId={semesterId || ""}
+          />
 
           <Card>
             <CardContent className="p-0">
@@ -547,7 +621,7 @@ const SemesterSubjectsPage = () => {
                 </div>
               ) : (
                 <>
-                  <SubjectTable
+                  <SemesterSubjectTable
                     subjects={filteredSubjects}
                     onEdit={handleEdit}
                     onDelete={handleDelete}

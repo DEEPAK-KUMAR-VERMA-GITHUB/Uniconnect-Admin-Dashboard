@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/hooks/context/ToastContext";
 
 // Services
 import { useCourse } from "@/services/courseService";

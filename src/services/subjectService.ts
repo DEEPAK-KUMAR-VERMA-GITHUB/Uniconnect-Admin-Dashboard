@@ -6,17 +6,27 @@ export interface Subject {
   _id: string;
   name: string;
   code: string;
+  department: {
+    _id: string;
+    name: string;
+  };
+  course: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  faculty?: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   credits: number;
-  status: string;
   metadata: {
     isElective: boolean;
     hasLab: boolean;
     isOnline: boolean;
   };
-  faculty: string;
-  semester: string;
-  resources: string[];
-  assignments: string[];
+  status: string;
   createdBy: {
     _id: string;
     fullName: string;
@@ -44,11 +54,14 @@ export interface PaginatedResponse {
   timestamp: string;
 }
 
-// API service for subjects
-export const fetchSubjectsBySemester = async (
-  semesterId: string
+export const fetchSubjects = async (
+  page: number = 1,
+  limit: number = 10
 ): Promise<PaginatedResponse> => {
-  const response = await apiRequest("GET", `/subjects/semester/${semesterId}`);
+  const response = await apiRequest(
+    "GET",
+    `/subjects?page=${page}&limit=${limit}`
+  );
   return await response.json();
 };
 
@@ -57,38 +70,33 @@ export const fetchSubject = async (id: string): Promise<{ data: Subject }> => {
   return await response.json();
 };
 
-export const createSubject = async (subjectData: {
-  data: {
-    name: string;
-    code: string;
-    credits: number;
-    metadata: {
-      isElective: boolean;
-      hasLab: boolean;
-      isOnline: boolean;
-    };
-  };
-}): Promise<Subject> => {
+export const fetchSubjectsBySemester = async (
+  semesterId: string
+): Promise<PaginatedResponse> => {
+  const response = await apiRequest("GET", `/semesters/get-all-subjects/${semesterId}`);
+  return await response.json();
+};
+
+export const fetchAvailableSubjects = async (
+  departmentId: string,
+  courseId: string,
+  semesterId: string
+): Promise<PaginatedResponse> => {
   const response = await apiRequest(
-    "POST",
-    `/subjects/create`,
-    subjectData.data
+    "GET",
+    `/subjects/available?departmentId=${departmentId}&courseId=${courseId}&semesterId=${semesterId}`
   );
+  return await response.json();
+};
+
+export const createSubject = async (subjectData: any): Promise<Subject> => {
+  const response = await apiRequest("POST", "/subjects/create", subjectData);
   return await response.json();
 };
 
 export const updateSubject = async (
   id: string,
-  subjectData: {
-    name?: string;
-    code?: string;
-    credits?: number;
-    metadata?: {
-      isElective?: boolean;
-      hasLab?: boolean;
-      isOnline?: boolean;
-    };
-  }
+  subjectData: any
 ): Promise<Subject> => {
   const response = await apiRequest("PUT", `/subjects/${id}`, subjectData);
   return await response.json();
@@ -102,22 +110,49 @@ export const updateSubjectStatus = async (
   id: string,
   status: string
 ): Promise<Subject> => {
-  const response = await apiRequest("PUT", `/subjects/change-status/${id}`, {
+  const response = await apiRequest("PATCH", `/subjects/${id}/status`, {
     status,
   });
   return await response.json();
 };
 
-export const fetchSubjects = async (): Promise<PaginatedResponse> => {
-  const response = await apiRequest("GET", `/subjects`);
+export const assignFaculty = async (
+  subjectId: string,
+  facultyId: string
+): Promise<Subject> => {
+  const response = await apiRequest(
+    "PATCH",
+    `/subjects/${subjectId}/assign-faculty`,
+    { facultyId }
+  );
   return await response.json();
 };
 
-// Custom hooks for subject operations
-export const useSubjects = () => {
+export const addSubjectsToSemester = async (
+  semesterId: string,
+  subjectIds: string[]
+): Promise<any> => {
+  const response = await apiRequest(
+    "POST",
+    `/semesters/${semesterId}/add-subjects`,
+    { subjectIds }
+  );
+  return await response.json();
+};
+
+// React Query hooks
+export const useSubjects = (page: number = 1, limit: number = 10) => {
   return useQuery({
-    queryKey: ["subjects"],
-    queryFn: () => fetchSubjects(),
+    queryKey: ["subjects", page, limit],
+    queryFn: () => fetchSubjects(page, limit),
+  });
+};
+
+export const useSubject = (id: string) => {
+  return useQuery({
+    queryKey: ["subject", id],
+    queryFn: () => fetchSubject(id),
+    enabled: !!id,
   });
 };
 
@@ -129,11 +164,15 @@ export const useSubjectsBySemester = (semesterId: string) => {
   });
 };
 
-export const useSubject = (id: string) => {
+export const useAvailableSubjects = (
+  departmentId: string,
+  courseId: string,
+  semesterId: string
+) => {
   return useQuery({
-    queryKey: ["subject", id],
-    queryFn: () => fetchSubject(id),
-    enabled: !!id,
+    queryKey: ["available-subjects", departmentId, courseId, semesterId],
+    queryFn: () => fetchAvailableSubjects(departmentId, courseId, semesterId),
+    enabled: !!(departmentId && courseId && semesterId),
   });
 };
 
@@ -168,19 +207,6 @@ export const useUpdateSubjectStatus = () => {
   });
 };
 
-// Faculty assignment
-export const assignFaculty = async (
-  subjectId: string,
-  facultyId: string
-): Promise<Subject> => {
-  const response = await apiRequest(
-    "PUT",
-    `/subjects/${subjectId}/assign-faculty`,
-    { facultyId }
-  );
-  return await response.json();
-};
-
 export const useAssignFaculty = () => {
   return useMutation({
     mutationFn: ({
@@ -193,120 +219,14 @@ export const useAssignFaculty = () => {
   });
 };
 
-// Resource management
-export const addResource = async (
-  subjectId: string,
-  resourceData: {
-    title: string;
-    type: string;
-    file: File;
-    year?: string;
-  }
-): Promise<any> => {
-  const formData = new FormData();
-  formData.append("title", resourceData.title);
-  formData.append("type", resourceData.type);
-  formData.append("file", resourceData.file);
-  if (resourceData.year) {
-    formData.append("year", resourceData.year);
-  }
-
-  const response = await apiRequest(
-    "POST",
-    `/subjects/${subjectId}/add-resource`,
-    formData
-  );
-  return await response.json();
-};
-
-export const useAddResource = () => {
-  return useMutation({
-    mutationFn: ({ subjectId, data }: { subjectId: string; data: any }) =>
-      addResource(subjectId, data),
-  });
-};
-
-export const removeResource = async (
-  subjectId: string,
-  resourceId: string
-): Promise<void> => {
-  await apiRequest("DELETE", `/subjects/${subjectId}/remove-resource`, {
-    resourceId,
-  });
-};
-
-export const useRemoveResource = () => {
+export const useAddSubjectsToSemester = () => {
   return useMutation({
     mutationFn: ({
-      subjectId,
-      resourceId,
+      semesterId,
+      subjectIds,
     }: {
-      subjectId: string;
-      resourceId: string;
-    }) => removeResource(subjectId, resourceId),
-  });
-};
-
-// Assignment management
-export const addAssignment = async (
-  subjectId: string,
-  assignmentData: {
-    title: string;
-    dueDate: string;
-    file: File;
-  }
-): Promise<any> => {
-  const formData = new FormData();
-  formData.append("title", assignmentData.title);
-  formData.append("dueDate", assignmentData.dueDate);
-  formData.append("file", assignmentData.file);
-
-  const response = await apiRequest(
-    "POST",
-    `/subjects/${subjectId}/add-assignment`,
-    formData
-  );
-  return await response.json();
-};
-
-export const useAddAssignment = () => {
-  return useMutation({
-    mutationFn: ({ subjectId, data }: { subjectId: string; data: any }) =>
-      addAssignment(subjectId, data),
-  });
-};
-
-export const removeAssignment = async (
-  subjectId: string,
-  assignmentId: string
-): Promise<void> => {
-  await apiRequest("DELETE", `/subjects/${subjectId}/remove-assignment`, {
-    assignmentId,
-  });
-};
-
-export const useRemoveAssignment = () => {
-  return useMutation({
-    mutationFn: ({
-      subjectId,
-      assignmentId,
-    }: {
-      subjectId: string;
-      assignmentId: string;
-    }) => removeAssignment(subjectId, assignmentId),
-  });
-};
-
-// Get subject resources and assignments
-export const getSubjectResources = async (subjectId: string): Promise<any> => {
-  const response = await apiRequest("GET", `/subjects/${subjectId}/resources`);
-  return await response.json();
-};
-
-export const useSubjectResources = (subjectId: string) => {
-  return useQuery({
-    queryKey: ["subject-resources", subjectId],
-    queryFn: () => getSubjectResources(subjectId),
-    enabled: !!subjectId,
+      semesterId: string;
+      subjectIds: string[];
+    }) => addSubjectsToSemester(semesterId, subjectIds),
   });
 };

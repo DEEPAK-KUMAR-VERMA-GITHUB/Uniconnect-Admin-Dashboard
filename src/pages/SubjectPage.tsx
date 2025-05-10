@@ -1,13 +1,19 @@
+// src/pages/SubjectPage.tsx
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { set, useForm } from "react-hook-form";
-import { useLocation } from "wouter";
+import { Plus } from "lucide-react";
 
 // UI Components
+import SubjectForm, {
+  SubjectFormValues,
+  subjectSchema,
+} from "@/components/subject/SubjectForm";
+import SubjectTable from "@/components/subject/SubjectTable";
+import PaginationControls from "@/components/department/PaginationControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,20 +22,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/hooks/context/ToastContext";
+import ChangeSubjectStatusDialog from "@/components/subject/ChangeSubjectStatusDialog";
 
 // Services
-import PaginationControls from "@/components/department/PaginationControls";
-import ChangeSubjectStatusDialog from "@/components/subject/ChangeSubjectStatusDialog";
-import SubjectForm, {
-  SubjectFormValues,
-  subjectSchema,
-} from "@/components/subject/SubjectForm";
-import SubjectTable from "@/components/subject/SubjectTable";
 import {
-  Subject,
   useCreateSubject,
   useDeleteSubject,
   useSubjects,
@@ -39,11 +37,10 @@ import {
 
 const SubjectPage = () => {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [subjectsPerPage] = useState(5);
+  const [subjectsPerPage] = useState(10);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
 
@@ -58,10 +55,13 @@ const SubjectPage = () => {
     defaultValues: {
       name: "",
       code: "",
+      department: "",
+      course: "",
       credits: 3,
       isElective: false,
       hasLab: false,
       isOnline: false,
+      status: "ACTIVE",
     },
   });
 
@@ -71,25 +71,36 @@ const SubjectPage = () => {
       subjectForm.reset({
         name: selectedSubject.name,
         code: selectedSubject.code,
+        department: selectedSubject.department._id,
+        course: selectedSubject.course._id,
         credits: selectedSubject.credits,
         isElective: selectedSubject.metadata?.isElective || false,
         hasLab: selectedSubject.metadata?.hasLab || false,
         isOnline: selectedSubject.metadata?.isOnline || false,
+        status: selectedSubject.status,
       });
     } else {
       subjectForm.reset({
         name: "",
         code: "",
+        department: "",
+        course: "",
         credits: 3,
         isElective: false,
         hasLab: false,
         isOnline: false,
+        status: "ACTIVE",
       });
     }
   }, [selectedSubject, subjectForm]);
 
   // API hooks
-  const { data: res, isLoading, isError, error } = useSubjects();
+  const {
+    data: res,
+    isLoading,
+    isError,
+    error,
+  } = useSubjects(currentPage, subjectsPerPage);
 
   const createSubjectMutation = useCreateSubject();
   const updateSubjectMutation = useUpdateSubject();
@@ -134,7 +145,7 @@ const SubjectPage = () => {
   }, [currentPage]);
 
   // Handle subject actions
-  const handleEdit = useCallback((subject: Subject) => {
+  const handleEdit = useCallback((subject) => {
     setSelectedSubject(subject);
     setIsDialogOpen(true);
   }, []);
@@ -143,9 +154,7 @@ const SubjectPage = () => {
     (id: string) => {
       deleteSubjectMutation.mutate(id, {
         onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ["subjects"],
-          });
+          queryClient.invalidateQueries({ queryKey: ["subjects"] });
           toast({
             title: "Success",
             description: "Subject deleted successfully",
@@ -184,8 +193,10 @@ const SubjectPage = () => {
         {
           onSuccess: () => {
             setIsStatusDialogOpen(false);
+            setSubjectForStatusChange(null);
             queryClient.invalidateQueries({
               queryKey: ["subjects"],
+              refetchType: "all",
             });
             toast({
               title: "Success",
@@ -218,29 +229,32 @@ const SubjectPage = () => {
   // Form submission
   const onSubmit = useCallback(
     (data: SubjectFormValues) => {
+      const subjectData = {
+        name: data.name,
+        code: data.code,
+        department: data.department,
+        course: data.course,
+        credits: data.credits,
+        metadata: {
+          isElective: data.isElective,
+          hasLab: data.hasLab,
+          isOnline: data.isOnline,
+        },
+        status: data.status,
+      };
+
       if (selectedSubject) {
         // Update existing subject
         updateSubjectMutation.mutate(
           {
             id: selectedSubject._id,
-            data: {
-              name: data.name,
-              code: data.code,
-              credits: data.credits,
-              metadata: {
-                isElective: data.isElective,
-                hasLab: data.hasLab,
-                isOnline: data.isOnline,
-              },
-            },
+            data: subjectData,
           },
           {
             onSuccess: () => {
               setIsDialogOpen(false);
               setSelectedSubject(null);
-              queryClient.invalidateQueries({
-                queryKey: ["subjects"],
-              });
+              queryClient.invalidateQueries({ queryKey: ["subjects"] });
               toast({
                 title: "Success",
                 description: "Subject updated successfully",
@@ -266,91 +280,66 @@ const SubjectPage = () => {
           }
         );
       } else {
-        // Create new subject for this semester
-        createSubjectMutation.mutate(
-          {
-            data: {
-              name: data.name,
-              code: data.code,
-              credits: data.credits,
-              metadata: {
-                isElective: data.isElective,
-                hasLab: data.hasLab,
-                isOnline: data.isOnline,
-              },
-            },
+        // Create new subject
+        createSubjectMutation.mutate(subjectData, {
+          onSuccess: () => {
+            setIsDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["subjects"] });
+            toast({
+              title: "Success",
+              description: "Subject created successfully",
+              variant: "default",
+            });
+            subjectForm.reset();
           },
-          {
-            onSuccess: () => {
-              setIsDialogOpen(false);
-              queryClient.invalidateQueries({
-                queryKey: ["subjects"],
-              });
+          onError: (error: Error) => {
+            try {
+              const err = JSON.parse(error.message);
               toast({
-                title: "Success",
-                description: "Subject created successfully",
-                variant: "default",
+                title: err.error || "Error",
+                description: err.message || "Failed to create subject",
+                variant: "destructive",
               });
-              subjectForm.reset();
-            },
-            onError: (error: Error) => {
-              try {
-                const err = JSON.parse(error.message);
-                toast({
-                  title: err.error || "Error",
-                  description: err.message || "Failed to create subject",
-                  variant: "destructive",
-                });
-              } catch {
-                toast({
-                  title: "Error",
-                  description: error.message || "Failed to create subject",
-                  variant: "destructive",
-                });
-              }
-            },
-          }
-        );
+            } catch {
+              toast({
+                title: "Error",
+                description: error.message || "Failed to create subject",
+                variant: "destructive",
+              });
+            }
+          },
+        });
       }
     },
     [
       selectedSubject,
-      updateSubjectMutation,
       createSubjectMutation,
+      updateSubjectMutation,
       queryClient,
       toast,
       subjectForm,
     ]
   );
 
-  // Handle opening status change dialog
-  const handleOpenStatusDialog = useCallback((subject) => {
-    setSubjectForStatusChange(subject);
-    setIsStatusDialogOpen(true);
-  }, []);
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    // Allow some time for animation to complete before resetting selected subject
-    setTimeout(() => {
-      setSelectedSubject(null);
-    }, 300);
-  };
-
-  const handleCloseStatusDialog = () => {
-    setIsStatusDialogOpen(false);
-    // Allow some time for animation to complete before resetting subject for status change
-    setTimeout(() => {
-      setSubjectForStatusChange(null);
-    }, 300);
-  };
-
-  const handleBackToSemesters = () => {
-    navigate("/");
-  };
-
   const isSubmitting =
     createSubjectMutation.isPending || updateSubjectMutation.isPending;
+
+  // Handle adding a new subject
+  const handleAddSubject = () => {
+    setSelectedSubject(null);
+    subjectForm.reset({
+      name: "",
+      code: "",
+      department: "",
+      course: "",
+      credits: 3,
+      isElective: false,
+      hasLab: false,
+      isOnline: false,
+      status: "ACTIVE",
+    });
+    setIsDialogOpen(true);
+  };
 
   return (
     <div className="flex min-h-screen bg-background overflow-hidden">
@@ -360,52 +349,37 @@ const SubjectPage = () => {
         <Header notifications={[]} />
 
         <main className="flex-1 p-6 overflow-auto">
-          <div className="flex items-center mb-6">
-            <Button
-              variant="ghost"
-              onClick={handleBackToSemesters}
-              className="mr-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold">{"Subjects"}</h1>
+              <h1 className="text-2xl font-bold">Subject Management</h1>
               <p className="text-muted-foreground">
-                Manage subjects for this semester
+                Manage subjects across departments and courses
               </p>
             </div>
-          </div>
 
-          <div className="flex justify-end mb-6">
             <ChangeSubjectStatusDialog
-              isOpen={isStatusDialogOpen}
-              onOpenChange={(open) => {
-                setIsStatusDialogOpen(open);
-                if (!open) {
-                  handleCloseStatusDialog;
-                }
-              }}
               subject={subjectForStatusChange}
+              isOpen={isStatusDialogOpen}
+              onOpenChange={setIsStatusDialogOpen}
               onStatusChange={handleStatusChange}
             />
 
             <Dialog
               open={isDialogOpen}
               onOpenChange={(open) => {
-                setIsDialogOpen(open);
                 if (!open) {
-                  handleCloseDialog();
+                  // Clean up when dialog closes
+                  setTimeout(() => {
+                    if (!open) setSelectedSubject(null);
+                  }, 300);
                 }
+                setIsDialogOpen(open);
               }}
             >
-              <DialogTrigger asChild>
-                <Button onClick={() => setSelectedSubject(null)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Subject
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <Button onClick={handleAddSubject}>
+                <Plus className="mr-2 h-4 w-4" /> Add Subject
+              </Button>
+              <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                   <DialogTitle>
                     {selectedSubject ? "Edit Subject" : "Add Subject"}
@@ -422,6 +396,8 @@ const SubjectPage = () => {
                   onSubmit={onSubmit}
                   isSubmitting={isSubmitting}
                   isEditing={!!selectedSubject}
+                  initialDepartmentId={selectedSubject?.department?._id}
+                  initialCourseId={selectedSubject?.course?._id}
                 />
               </DialogContent>
             </Dialog>
@@ -443,7 +419,10 @@ const SubjectPage = () => {
                     subjects={subjects}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onChangeStatus={handleOpenStatusDialog}
+                    onChangeStatus={(subject) => {
+                      setSubjectForStatusChange(subject);
+                      setIsStatusDialogOpen(true);
+                    }}
                   />
 
                   {/* Pagination */}

@@ -36,11 +36,11 @@ const AssignFacultyDialog = ({
   const [selectedFaculty, setSelectedFaculty] = useState<string>("");
 
   // Get department ID from the subject's course
-  const departmentId = subject?.course?.department || "";
+  const departmentId = subject?.department._id || "";
 
   // Fetch faculty members from the department
   const { data: facultyData, isLoading } = useFacultyByDepartment(departmentId);
-  const facultyMembers = facultyData?.data?.data || [];
+  const facultyMembers = facultyData?.data || [];
 
   // Reset selected faculty when dialog opens with a new subject
   useEffect(() => {

@@ -71,7 +71,7 @@ export const fetchSessionSemesters = async (
 export const fetchSemester = async (
   id: string
 ): Promise<{ data: Semester }> => {
-  const response = await apiRequest("GET", `/semesters/${id}`);
+  const response = await apiRequest("GET", `/semesters/get-semester/${id}`);
   return await response.json();
 };
 
@@ -123,6 +123,16 @@ export const updateSemester = async (
 
 export const deleteSemester = async (id: string): Promise<void> => {
   await apiRequest("DELETE", `/semesters/delete-semester/${id}`);
+};
+
+export const deleteSemesterSubject = async (
+  semesterId: string,
+  subjectId: string
+): Promise<void> => {
+  await apiRequest(
+    "DELETE",
+    `/semesters/${semesterId}/remove-subject/${subjectId}`
+  );
 };
 
 export const updateSemesterStatus = async (
@@ -194,5 +204,17 @@ export const useUpdateSemesterStatus = () => {
       semesterId: string;
       status: string;
     }) => updateSemesterStatus(semesterId, status),
+  });
+};
+
+export const useDeleteSemesterSubject = () => {
+  return useMutation({
+    mutationFn: ({
+      semesterId,
+      subjectId,
+    }: {
+      semesterId: string;
+      subjectId: string;
+    }) => deleteSemesterSubject(semesterId, subjectId),
   });
 };

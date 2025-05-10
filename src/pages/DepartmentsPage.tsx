@@ -31,7 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/hooks/context/ToastContext";
 import AssignHeadDialog from "@/components/department/AssignHeadDialog ";
 import ChangeDepartmentStatusDialog from "@/components/department/ChangeDepartmentStatusDialog";
 import { useUpdateDepartmentStatus } from "@/services/departmentService";

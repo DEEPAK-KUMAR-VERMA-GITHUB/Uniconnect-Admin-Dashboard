@@ -1,4 +1,3 @@
-// src/components/subject/SubjectTable.tsx
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,12 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
-  MoreHorizontal, 
-  Pencil, 
-  ToggleLeft, 
+import {
+  MoreHorizontal,
+  Pencil,
+  ToggleLeft,
   Trash2,
-  UserPlus 
+  UserPlus,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -43,7 +42,7 @@ interface SubjectTableProps {
   onAssignFaculty: (subject: any) => void;
 }
 
-const SubjectTable = ({
+const SemesterSubjectTable = ({
   subjects,
   onEdit,
   onDelete,
@@ -106,7 +105,9 @@ const SubjectTable = ({
             </TableRow>
           ) : (
             subjects.map((subject) => (
-              <TableRow key={`${subject._id}-${subject.updatedAt || Date.now()}`}>
+              <TableRow
+                key={`${subject._id}-${subject.updatedAt || Date.now()}`}
+              >
                 <TableCell className="font-medium">{subject.name}</TableCell>
                 <TableCell>{subject.code}</TableCell>
                 <TableCell className="text-center">{subject.credits}</TableCell>
@@ -126,12 +127,14 @@ const SubjectTable = ({
                           {getInitials(subject.faculty.fullName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{subject.faculty.fullName}</span>
+                      <span className="text-sm">
+                        {subject.faculty.fullName}
+                      </span>
                     </div>
                   ) : (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => onAssignFaculty(subject)}
                       className="text-xs"
                     >
@@ -149,28 +152,28 @@ const SubjectTable = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      {/* <DropdownMenuItem
                         onClick={() => onEdit(subject)}
                         className="cursor-pointer"
                       >
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onChangeStatus(subject)}
                         className="cursor-pointer"
                       >
                         <ToggleLeft className="mr-2 h-4 w-4" />
                         Change Status
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      </DropdownMenuItem> */}
+                      <DropdownMenuItem
                         onClick={() => onAssignFaculty(subject)}
                         className="cursor-pointer"
                       >
                         <UserPlus className="mr-2 h-4 w-4" />
                         {subject.faculty ? "Change Faculty" : "Assign Faculty"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         className="text-destructive focus:text-destructive cursor-pointer"
                         onClick={() => setOpenAlertId(subject._id)}
                       >
@@ -181,7 +184,7 @@ const SubjectTable = ({
                   </DropdownMenu>
 
                   {/* Separate AlertDialog from DropdownMenu */}
-                  <AlertDialog 
+                  <AlertDialog
                     open={openAlertId === subject._id}
                     onOpenChange={(open) => {
                       if (!open) setOpenAlertId(null);
@@ -191,8 +194,8 @@ const SubjectTable = ({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Subject</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{subject.name}"? 
-                          This action cannot be undone.
+                          Are you sure you want to delete "{subject.name}"? This
+                          action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -218,4 +221,4 @@ const SubjectTable = ({
   );
 };
 
-export default SubjectTable;
+export default SemesterSubjectTable;

@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch } from "wouter";
 import { Toaster } from "./components/ui/toaster";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./hooks/context/AuthContext";
 import { ProtectedRoute } from "./lib/protectedRoute";
 import { queryClient } from "./lib/queryClient";
 import CourseSessionsPage from "./pages/CourseSessionsPage";

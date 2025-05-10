@@ -31,7 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/context/ToastContext";
+import { useToast } from "@/hooks/context/ToastContext";
 import ChangeCourseStatusDialog from "@/components/course/ChangeCourseStatusDialog";
 import { useLocation, useParams } from "wouter";
 import { useDepartment } from "@/services/departmentService";
