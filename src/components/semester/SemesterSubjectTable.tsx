@@ -32,7 +32,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface SubjectTableProps {
   subjects: any[];
@@ -123,6 +123,7 @@ const SemesterSubjectTable = ({
                   {subject.faculty ? (
                     <div className="flex items-center justify-center gap-2">
                       <Avatar className="h-6 w-6">
+                        <AvatarImage src={subject.faculty.profilePic} />
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                           {getInitials(subject.faculty.fullName)}
                         </AvatarFallback>

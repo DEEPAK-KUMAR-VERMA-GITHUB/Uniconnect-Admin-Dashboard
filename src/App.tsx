@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import SessionSemestersPage from "./pages/SessionSemestersPage";
 import SubjectPage from "./pages/SubjectPage";
 import SemesterSubjectsPage from "./pages/SemesterSubjectsPage";
+import UserPage from "./pages/UserPage";
 
 function Router() {
   return (
@@ -38,8 +39,8 @@ function Router() {
 
       <ProtectedRoute path="/subjects" component={SubjectPage} />
 
-      {/* <ProtectedRoute path="/users" component={UsersPage} />
-      <ProtectedRoute path="/notifications" component={NotificationsPage} />
+      <ProtectedRoute path="/users" component={UserPage} />
+      {/* <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/reports" component={ReportsPage} /> */}
       <Route path="/auth" component={LoginPage} />
       <Route component={NotFound} />
